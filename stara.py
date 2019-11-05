@@ -1,36 +1,56 @@
 import astropy.units as u
-import matplotlib.pyplot as plt
 import numpy as np
 from skimage.filters import median
-from skimage.measure import label, regionprops
-from skimage.morphology import opening, square, watershed, white_tophat, disk
+from skimage.morphology import closing, disk, square, white_tophat
 from skimage.util import invert
-
 import sunpy.map
 
-map1 = sunpy.map.Map("./data/hmi_ic_45s_2014_02_13_00_01_30_tai_continuum.fits")
-map1 = map1.resample((1024, 1024)*u.pix)
 
-data = invert(map1.data)
+@u.quantity_input
+def stara(smap, circle_radius: u.deg = 100*u.arcsec, median_box: u.deg = 10*u.arcsec,
+          threshold=6000, limb_filter: u.percent = None):
+    """
 
-circle_radius = 40 * u.arcsec
-median_box = 10 * u.arcsec
+    Parameters
+    ----------
+    smap : `sunpy.map.GenericMap`
+        The map to apply the algorithm to.
 
-c_pix = int((circle_radius / map1.scale[0]).to_value(u.pix))
-circle = disk(c_pix/2)
+    circle_radius : `astropy.units.Quantity`
+        The angular size of the structuring element used in the
+        `skimage.morphology.white_tophat`. This is the maximum radius of
+        detected features.
 
-m_pix = int((median_box / map1.scale[0]).to_value(u.pix))
-med = median(data, square(m_pix), behavior="ndimage")
-th = white_tophat(med, circle)
+    median_box : `astropy.units.Quantity`
+        The size of the structuring element for the median filter, features
+        smaller than this will be averaged out.
 
-finite = th
-finite[np.isnan(th)] = 0
+    threshold : `int`
+        The threshold used for detection, this will be subject to detector
+        degradation.
 
-segmentation = finite > np.percentile(finite, 99.8)
-labelled = label(segmentation)
-regions = regionprops(labelled)
+    limb_filter : `astropy.units.Quantity`
+        If set, ignore features close to the limb within a percentage of the
+        radius of the disk.
 
-plt.figure()
-ax = plt.subplot(projection=map1)
-map1.plot()
-ax.contour(segmentation, levels=0)
+    """
+    data = invert(smap.data)
+
+    # Filter things that are close to limb to reduce false detections
+    if limb_filter is not None:
+        hpc_coords = sunpy.map.all_coordinates_from_map(smap)
+        r = np.sqrt(hpc_coords.Tx ** 2 + hpc_coords.Ty ** 2) / (smap.rsun_obs - smap.rsun_obs * limb_filter)
+        data[r>1] = np.nan
+
+    # Median filter to remove detections based on hot pixels
+    m_pix = int((median_box / smap.scale[0]).to_value(u.pix))
+    med = median(data, square(m_pix), behavior="ndimage")
+
+    # Construct the pixel structuring element
+    c_pix = int((circle_radius / smap.scale[0]).to_value(u.pix))
+    circle = disk(c_pix/2)
+
+    finite = white_tophat(med, circle)
+    finite[np.isnan(finite)] = 0  # Filter out nans
+
+    return finite > 6000
