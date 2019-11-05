@@ -16,22 +16,23 @@ def stara(smap, circle_radius: u.deg = 100*u.arcsec, median_box: u.deg = 10*u.ar
     smap : `sunpy.map.GenericMap`
         The map to apply the algorithm to.
 
-    circle_radius : `astropy.units.Quantity`
+    circle_radius : `astropy.units.Quantity`, optional
         The angular size of the structuring element used in the
         `skimage.morphology.white_tophat`. This is the maximum radius of
         detected features.
 
-    median_box : `astropy.units.Quantity`
+    median_box : `astropy.units.Quantity`, optional
         The size of the structuring element for the median filter, features
         smaller than this will be averaged out.
 
-    threshold : `int`
+    threshold : `int`, optional
         The threshold used for detection, this will be subject to detector
-        degradation.
+        degradation. The default is a reasonable value for HMI continuum images.
 
-    limb_filter : `astropy.units.Quantity`
+    limb_filter : `astropy.units.Quantity`, optional
         If set, ignore features close to the limb within a percentage of the
-        radius of the disk.
+        radius of the disk. A value of 10% generally filters out false
+        detections around the limb with HMI continuum images.
 
     """
     data = invert(smap.data)
