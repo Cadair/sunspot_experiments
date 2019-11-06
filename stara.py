@@ -1,7 +1,7 @@
 import astropy.units as u
 import numpy as np
 from skimage.filters import median
-from skimage.morphology import closing, disk, square, white_tophat
+from skimage.morphology import disk, square, white_tophat
 from skimage.util import invert
 import sunpy.map
 
@@ -10,6 +10,7 @@ import sunpy.map
 def stara(smap, circle_radius: u.deg = 100*u.arcsec, median_box: u.deg = 10*u.arcsec,
           threshold=6000, limb_filter: u.percent = None):
     """
+    A method for automatically detecting sunspots in white-light data using morphological operations.
 
     Parameters
     ----------
