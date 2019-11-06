@@ -41,7 +41,7 @@ def stara(smap, circle_radius: u.deg = 100*u.arcsec, median_box: u.deg = 10*u.ar
     if limb_filter is not None:
         hpc_coords = sunpy.map.all_coordinates_from_map(smap)
         r = np.sqrt(hpc_coords.Tx ** 2 + hpc_coords.Ty ** 2) / (smap.rsun_obs - smap.rsun_obs * limb_filter)
-        data[r>1] = np.nan
+        data[r > 1] = np.nan
 
     # Median filter to remove detections based on hot pixels
     m_pix = int((median_box / smap.scale[0]).to_value(u.pix))
@@ -49,9 +49,9 @@ def stara(smap, circle_radius: u.deg = 100*u.arcsec, median_box: u.deg = 10*u.ar
 
     # Construct the pixel structuring element
     c_pix = int((circle_radius / smap.scale[0]).to_value(u.pix))
-    circle = disk(c_pix/2)
+    circle = disk(c_pix / 2)
 
     finite = white_tophat(med, circle)
     finite[np.isnan(finite)] = 0  # Filter out nans
 
-    return finite > 6000
+    return finite > threshold
